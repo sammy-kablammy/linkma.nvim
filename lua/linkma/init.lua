@@ -1,7 +1,7 @@
 local M = {}
 
 M.setup = function()
-    print("there isn't any setup lol")
+    -- stub
 end
 
 M.toc_loclist = function()
@@ -11,8 +11,62 @@ M.toc_loclist = function()
     ]])
 end
 
+-- Find the next link in the buffer. Returns table with line number, starting
+-- column, ending column, and text; returns nil if no links are found.
+local function get_next_link()
+    -- todo specify caseness in the regexes ("regeces"?)
+    local standard_markdown_link = [[\[.*\](\S*)]]
+    local wiki_link = "\\[\\[.*\\]\\]"
+    local monstrous_regex = "\\m\\c" .. standard_markdown_link .. "\\|" .. wiki_link
+    local current_line_num = vim.api.nvim_win_get_cursor(0)[1]
+    local bufnr = vim.fn.bufnr() -- (matchbufline doesn't support bufnr of 0)
+    local matches = vim.fn.matchbufline(bufnr, monstrous_regex, current_line_num, "$")
+    if #matches == 0 then
+        return nil
+    end
+    local end_col = matches[1].byteidx + #(matches[1].text) - 1
+    return { row = matches[1].lnum, start_col = matches[1].byteidx, end_col = end_col, text = matches[1].text }
+end
+
 M.follow_link = function()
-    vim.cmd.norm([[0f(lgf]])
+    local match = get_next_link()
+    if match == nil then
+        return
+    end
+    local link = match.text
+    local internet_link_pattern = [[\m\c(\(http\|https\):\/\/\(\(www\.\)\=\)\S*)]]
+    local internet_match = vim.fn.matchstr(match.text, internet_link_pattern)
+    local is_internet_link = #internet_match ~= 0
+    if is_internet_link then
+        local url_without_parens = internet_match:sub(2, -2)
+        vim.ui.open(url_without_parens)
+        return
+    end
+    local filename
+    if match.text:sub(1, 2) == "[[" then
+        -- this link is [[wiki style]]
+        filename = match.text:sub(3, -3)
+    else
+        -- this link is [normal markdown style]()
+        -- ugh. lua patterns use % to escape, not \. this got me for like 15 minutes
+        local idx_of_paren = match.text:find("%(")
+        filename = match.text:sub(idx_of_paren + 1, -2)
+    end
+    vim.cmd.edit(filename)
+end
+
+M.select_link_text_object = function(around)
+    local match = get_next_link()
+    if match == nil then
+        return
+    end
+    vim.api.nvim_buf_set_mark(0, "<", match.row, match.start_col, {})
+    if around then
+        vim.api.nvim_buf_set_mark(0, ">", match.row, match.end_col + 1, {})
+    else
+        vim.api.nvim_buf_set_mark(0, ">", match.row, match.end_col, {})
+    end
+    vim.api.nvim_feedkeys("gv", "n", true)
 end
 
 return M
