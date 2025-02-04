@@ -18,7 +18,10 @@ example setup using lazy.nvim:
             callback = function()
                 vim.api.nvim_buf_create_user_command(0, "LinkmaToc", linkma.toc_loclist, {})
                 vim.keymap.set("n", "<enter>", linkma.follow_link, { buffer = 0, desc = "follow link" })
-                -- link text object support
+                vim.keymap.set("n", "]x", linkma.next_checkbox, { desc = "next checkbox" })
+                vim.keymap.set("n", "[x", linkma.previous_checkbox, { desc = "previous checkbox" })
+                vim.keymap.set("n", "<c-x>", linkma.toggle_checkbox, { desc = "toggle checkbox" })
+                -- text object for links
                 vim.keymap.set("x", "il", linkma.select_link_text_object, { buffer = 0, desc = "inner link" })
                 vim.keymap.set("o", "il", ":normal vil<cr>", { buffer = 0, desc = "inner link" })
                 vim.keymap.set("x", "al", function() linkma.select_link_text_object(true) end, { buffer = 0, desc = "around link" })
@@ -72,3 +75,8 @@ generate a table of contents based on `# markdown` `## headings`
 require("linkma.nvim").toc_loclist()
 
 ```
+
+## checkbox support
+
+navigate between checkboxes (like `[X] done` or `[ ] not yet done`). also you
+can toggle the state of a checkbox.

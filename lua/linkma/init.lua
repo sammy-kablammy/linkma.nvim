@@ -69,4 +69,33 @@ M.select_link_text_object = function(around)
     vim.api.nvim_feedkeys("gv", "n", true)
 end
 
+local checkbox_pattern = "^[ \t]*- \\[[x ]\\]" -- this is abhorrent
+
+M.next_checkbox = function()
+    vim.fn.search(checkbox_pattern, "We")
+end
+
+M.previous_checkbox = function()
+    vim.fn.search(checkbox_pattern, "Wbe")
+end
+
+M.toggle_checkbox = function()
+    local line_number = vim.fn.search(checkbox_pattern, "Wncb")
+    if line_number == 0 then
+        return
+    end
+    local original = vim.fn.getline(line_number)
+    local checkbox_start_pos = vim.fn.match(original, "\\[")
+    local before_checkbox = string.sub(original, 1, checkbox_start_pos)
+    local after_checkbox = string.sub(original, checkbox_start_pos + 4)
+    local is_checked = string.sub(original, checkbox_start_pos + 2, checkbox_start_pos + 2) == "X"
+    local new = ""
+    if is_checked then
+        new = before_checkbox .. "[ ]" .. after_checkbox
+    else
+        new = before_checkbox .. "[X]" .. after_checkbox
+    end
+    vim.fn.setline(line_number, new)
+end
+
 return M
